@@ -9,7 +9,7 @@ class Program
 {
     static void Main(string[] args)
     {
-        string filePath = @"..\..\..\PublicInstances\toy.dzn";
+        string filePath = @"..\..\..\PublicInstances\wlp17.dzn";
 
         string fileContent = File.ReadAllText(filePath);
 
@@ -45,28 +45,20 @@ class Program
             // Populate the incompatible stores dictionary
             foreach (var pair in incompatiblePairsList)
             {
-                for (int i = 0; i < pair.Count; i++)
+                int store1 = pair[0];
+                int store2 = pair[1];
+
+                if (!incompatibleStoresDict.ContainsKey(store1))
                 {
-                    int store1 = pair[i];
-
-                    if (!incompatibleStoresDict.ContainsKey(store1))
-                    {
-                        incompatibleStoresDict[store1] = new HashSet<int>();
-                    }
-
-                    for (int j = i + 1; j < pair.Count; j++)
-                    {
-                        int store2 = pair[j];
-
-                        if (!incompatibleStoresDict.ContainsKey(store2))
-                        {
-                            incompatibleStoresDict[store2] = new HashSet<int>();
-                        }
-
-                        incompatibleStoresDict[store1].Add(store2);
-                        incompatibleStoresDict[store2].Add(store1);
-                    }
+                    incompatibleStoresDict[store1] = new HashSet<int>();
                 }
+                if (!incompatibleStoresDict.ContainsKey(store2))
+                {
+                    incompatibleStoresDict[store2] = new HashSet<int>();
+                }
+
+                incompatibleStoresDict[store1].Add(store2);
+                incompatibleStoresDict[store2].Add(store1);
             }
 
             var stores = new List<Store>();
