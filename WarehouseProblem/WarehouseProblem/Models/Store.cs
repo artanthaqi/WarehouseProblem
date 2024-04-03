@@ -10,8 +10,9 @@ namespace WarehouseProblem.Models
     {
         public int Id { get; set; }
         public int Request { get; set; }
-        public int Supply { get; set; }
+        public double Supply { get; set; }
         public HashSet<int> IncompatibleStores { get; set; }
         public Warehouse Supplier { get; set; }
+        public Dictionary<int, double> SupplyCosts { get; internal set; }
     }
 }
