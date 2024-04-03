@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using WarehouseProblem.Models;
 
 class Program
 {
@@ -29,66 +30,107 @@ class Program
                 IncompatiblePairs = match.Groups[8].Value.Trim()
             };
 
-            var warehouses = new List<WarehouseClass>();
+            var warehouses = new List<Warehouse>();
             for (int i = 0; i < data.Warehouses; i++)
             {
-                warehouses.Add(new WarehouseClass { Capacity = data.Capacity[i] });
+                warehouses.Add(new Warehouse { Id = i + 1, Capacity = data.Capacity[i] });
+            }
+
+            // Create a dictionary to store the incompatible stores for each store
+            var incompatibleStoresDict = new Dictionary<int, HashSet<int>>();
+
+            // Parse the incompatible pairs string
+            var incompatiblePairsList = data.IncompatiblePairs.Split('|').Select(pair => pair.Split(',').Select(int.Parse).ToList()).ToList();
+
+            // Populate the incompatible stores dictionary
+            foreach (var pair in incompatiblePairsList)
+            {
+                for (int i = 0; i < pair.Count; i++)
+                {
+                    int store1 = pair[i];
+
+                    if (!incompatibleStoresDict.ContainsKey(store1))
+                    {
+                        incompatibleStoresDict[store1] = new HashSet<int>();
+                    }
+
+                    for (int j = i + 1; j < pair.Count; j++)
+                    {
+                        int store2 = pair[j];
+
+                        if (!incompatibleStoresDict.ContainsKey(store2))
+                        {
+                            incompatibleStoresDict[store2] = new HashSet<int>();
+                        }
+
+                        incompatibleStoresDict[store1].Add(store2);
+                        incompatibleStoresDict[store2].Add(store1);
+                    }
+                }
             }
 
             var stores = new List<Store>();
             for (int i = 0; i < data.Stores; i++)
             {
-                stores.Add(new Store { Request = data.Goods[i] });
+                stores.Add(new Store
+                {
+                    Id = i + 1,
+                    Request = data.Goods[i],
+                    IncompatibleStores = incompatibleStoresDict.ContainsKey(i + 1) ? incompatibleStoresDict[i + 1] : new HashSet<int>()
+                });
             }
+
+
+            // Create a HashSet to store incompatible pairs
+            var incompatiblePairs = new HashSet<string>();
 
             // Assign goods to stores
             foreach (var store in stores)
             {
                 foreach (var warehouse in warehouses)
                 {
+                    // Check if the warehouse-store pair is incompatible
+                    if (incompatiblePairs.Contains($"{warehouse.Id},{store.Id}"))
+                    {
+                        continue;
+                    }
+
                     if (warehouse.Capacity >= store.Request)
                     {
                         warehouse.Capacity -= store.Request;
                         store.Supply = store.Request;
                         store.Supplier = warehouse;
+
+                        // Add all incompatible pairs of the current store to the HashSet
+                        foreach (var incompatibleStore in store.IncompatibleStores)
+                        {
+                            incompatiblePairs.Add($"{warehouse.Id},{incompatibleStore}");
+                        }
+
                         break;
                     }
                 }
             }
 
-            // Print results
-            for (int i = 0; i < stores.Count; i++)
+            // Save results to a text file in the "Solutions" folder
+            using (StreamWriter sw = new StreamWriter(Path.Combine(@"..\..\..\Solutions", $"sol-{Path.GetFileNameWithoutExtension(filePath)}.txt")))
             {
-                Console.WriteLine($"Store {i + 1} is supplied by Warehouse {warehouses.IndexOf(stores[i].Supplier) + 1} with quantity {stores[i].Supply}");
+                sw.Write("{");
+                for (int i = 0; i < stores.Count; i++)
+                {
+                    sw.Write($"({i + 1},{warehouses.IndexOf(stores[i].Supplier) + 1},{stores[i].Supply})");
+                    if (i < stores.Count - 1)
+                    {
+                        sw.Write(", ");
+                    }
+                }
+                sw.Write("}");
             }
+
         }
         else
         {
             Console.WriteLine("No match found.");
         }
     }
-}
-
-public class DataModel
-{
-    public int Warehouses { get; set; }
-    public int Stores { get; set; }
-    public List<int> Capacity { get; set; }
-    public List<int> FixedCost { get; set; }
-    public List<int> Goods { get; set; }
-    public string SupplyCost { get; set; }
-    public int Incompatibilities { get; set; }
-    public string IncompatiblePairs { get; set; }
-}
-
-public class WarehouseClass
-{
-    public int Capacity { get; set; }
-}
-
-public class Store
-{
-    public int Request { get; set; }
-    public int Supply { get; set; }
-    public WarehouseClass Supplier { get; set; }
 }

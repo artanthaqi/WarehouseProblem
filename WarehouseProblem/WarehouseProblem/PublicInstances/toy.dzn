@@ -16,4 +16,4 @@ SupplyCost = [|27, 66, 44, 55
               |82, 107, 91, 31|];
 			  
 Incompatibilities = 3;
-IncompatiblePairs = [| 1, 10 | 2, 7 | 8, 9 |];
+IncompatiblePairs = [| 1, 2 | 2, 7 | 8, 9 |];
