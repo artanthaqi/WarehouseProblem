@@ -9,9 +9,14 @@ class Program
 {
     static void Main(string[] args)
     {
-        string filePath = @"..\..\..\PublicInstances\wlp01.dzn";
+        for(int k = 1; k<=20; k++){
+            string filePath = "";
+            if (k < 10)
+                filePath = @"..\..\..\PublicInstances\wlp0" + k + ".dzn";
+            if (k >= 10)
+                filePath = @"..\..\..\PublicInstances\wlp" + k + ".dzn";
 
-        string fileContent = File.ReadAllText(filePath);
+            string fileContent = File.ReadAllText(filePath);
 
         // Use regex to match and extract data
         var match = Regex.Match(fileContent, @"Warehouses = (\d+);\s*Stores = (\d+);\s*Capacity = \[(.*?)\];\s*FixedCost = \[(.*?)\];\s*Goods = \[(.*?)\];\s*SupplyCost = \[\|(.*?)\|\];\s*Incompatibilities = (\d+);\s*IncompatiblePairs = \[\|(.*?)\|\];", RegexOptions.Singleline);
@@ -133,6 +138,7 @@ class Program
         {
             Console.WriteLine("No match found.");
         }
+    }
     }
 
     static double EvaluateSolution(List<Store> stores, List<Warehouse> warehouses)
