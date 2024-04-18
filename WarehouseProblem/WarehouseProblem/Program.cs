@@ -401,7 +401,147 @@ class Program
 
         }
 
+        static ProSolution Perturb(ProSolution sol)
+        {
+            var preW = new Dictionary<int, Warehouse>();
 
+            Random rnd = new Random();
+
+            // Calculate the number of stores that represent 5% of the total
+            int numStoresToSelect = (int)Math.Ceiling(sol.Stores.Count * 0.30);
+
+            // Create a list to store the randomly selected stores
+            var selectedStores = new List<Store>();
+
+            // Randomly select 5% of stores
+            while (selectedStores.Count < numStoresToSelect)
+            {
+                int randomIndex = rnd.Next(sol.Stores.Count);
+                var store = sol.Stores[randomIndex];
+                if (!selectedStores.Contains(store))
+                {
+                    selectedStores.Add(store);
+                }
+            }
+
+            // Process the randomly selected stores
+            foreach (var store in selectedStores)
+            {
+                var wr = sol.Warehouses.Where(x => x == store.Suppliers[0]).SingleOrDefault();
+                wr.Capacity = wr.Capacity + store.Request;
+                preW.Add(store.Id, wr);
+
+
+                foreach (var warehouse in store.Suppliers)
+                {
+                    foreach (var incompatibleStore in store.IncompatibleStores)
+                    {
+                        var remove = true;
+                        var incompatibleStoreobj = sol.Stores.Where(x => x.Id == incompatibleStore).SingleOrDefault();
+
+                        foreach (var sr in incompatibleStoreobj.IncompatibleStores)
+                        {
+
+                            if (store.Id == sr)
+                                continue;
+
+                            var wrs = sol.Stores.Where(s => s.Id == sr).FirstOrDefault().Suppliers;
+
+                            foreach (var s in wrs)
+                            {
+                                if (warehouse == s)
+                                    remove = false;
+                            }
+
+                        }
+
+
+
+                        if (remove)
+                            sol.IncompatiblePairs.Remove($"{warehouse.Id},{incompatibleStore}");
+                    }
+                    //warehouse.Capacity = warehouse.Capacity + (int)store.Request;//store.WarehousesSupply.Where(x => x.warehouse.Id == warehouse.Id).SingleOrDefault().supplyreq;
+                }
+
+
+
+                store.Suppliers = new List<Warehouse>();
+                store.WarehousesSupply = new List<SupplyReq>();
+
+
+            }
+
+            foreach (var store in selectedStores)
+            {
+                var req = (int)store.Request;
+                var requestList = new List<int>();
+                var firstRequest = (int)store.Request; //rnd.Next((int)store.Request - 1);
+                var secondRequest = (int)store.Request - firstRequest;
+                var wr = preW[store.Id];
+
+
+                sol.CountReq = (int)store.Request;
+
+                requestList.Add(firstRequest);
+                //requestList.Add(secondRequest);
+
+                foreach (var request in requestList)
+                {
+
+                    foreach (var warehouse in sol.Warehouses)
+                    {
+                        // Check if the warehouse-store pair is incompatible
+                        if (sol.IncompatiblePairs.Contains($"{warehouse.Id},{store.Id}") || wr == warehouse)
+                        {
+                            continue;
+                        }
+
+                        if (warehouse.Capacity >= request)
+                        {
+                            warehouse.Capacity -= request;
+                            store.Supply = store.SupplyCosts[warehouse.Id];
+                            store.Suppliers.Add(warehouse);
+                            store.WarehousesSupply.Add(new SupplyReq { warehouse = warehouse, supplyreq = request });
+
+
+                            sol.CountReq = sol.CountReq - request;
+                            req = req - request;
+                            // Add all incompatible pairs of the current store to the HashSet
+                            foreach (var incompatibleStore in store.IncompatibleStores)
+                            {
+                                sol.IncompatiblePairs.Add($"{warehouse.Id},{incompatibleStore}");
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                if (req != 0)
+                {
+                    wr.Capacity -= req;
+                    store.Suppliers.Add(wr);
+                    store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = req });
+
+                    foreach (var incompatibleStore in store.IncompatibleStores)
+                    {
+                        sol.IncompatiblePairs.Add($"{wr.Id},{incompatibleStore}");
+                    }
+
+                }
+                else
+                {
+                   // wr.Capacity += req;
+                }
+
+
+            }
+
+
+
+
+            return new ProSolution(stores: sol.Stores, warehouses: sol.Warehouses, incompatiblePairs: sol.IncompatiblePairs);
+        }
 
         static ProSolution intialSol(ProSolution sol)
         {
