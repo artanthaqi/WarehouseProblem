@@ -432,6 +432,9 @@ class Program
                 preW.Add(store.Id, wr);
 
 
+
+
+
                 foreach (var warehouse in store.Suppliers)
                 {
                     foreach (var incompatibleStore in store.IncompatibleStores)
@@ -478,6 +481,15 @@ class Program
                 var firstRequest = (int)store.Request; //rnd.Next((int)store.Request - 1);
                 var secondRequest = (int)store.Request - firstRequest;
                 var wr = preW[store.Id];
+
+                foreach (var wrt in store.SupplyCosts)
+                {
+                    var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
+                    solwr.supplyForStore = (int)wrt.Value;
+
+                }
+
+                sol.Warehouses = sol.Warehouses.OrderBy(x => x.supplyForStore).ToList();
 
 
                 sol.CountReq = (int)store.Request;
