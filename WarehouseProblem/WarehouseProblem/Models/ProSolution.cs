@@ -13,11 +13,12 @@ namespace WarehouseProblem.Models
         public HashSet<string> IncompatiblePairs { get; set; }
 
         public int CountReq { get; set; }
-        public ProSolution(List<Store> stores, List<Warehouse> warehouses, HashSet<string> incompatiblePairs)
+        public ProSolution(List<Store> stores, List<Warehouse> warehouses, HashSet<string> incompatiblePairs, int Procapacity)
         {
             Stores = stores;
             Warehouses = warehouses;
             IncompatiblePairs = incompatiblePairs;
+            this.Procapacity = Procapacity;
         }
         public ProSolution(List<Store> stores, List<Warehouse> warehouses)
         {
@@ -25,13 +26,18 @@ namespace WarehouseProblem.Models
             Warehouses = warehouses;
             IncompatiblePairs = new HashSet<string>();
         }
-
-        public ProSolution DeepCopy()
+        public ProSolution(List<Store> stores, List<Warehouse> warehouses, int Procapacity)
         {
-            ProSolution deepcopyCompany = new ProSolution(this.Stores,this.Warehouses, this.IncompatiblePairs);
-
-            return deepcopyCompany;
+            Stores = stores;
+            Warehouses = warehouses;
+            IncompatiblePairs = new HashSet<string>();
+            this.Procapacity = Procapacity;
         }
+
+
+        public int Procapacity { get; set; }
+
+
 
     }
 }
