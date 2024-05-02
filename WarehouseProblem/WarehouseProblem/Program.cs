@@ -120,7 +120,7 @@ class Program
                     }).ToList(),
                     warehouses: sol.Warehouses.Select(w => new Warehouse
                     {
-                        Id= w.Id,
+                        Id = w.Id,
                         Capacity = w.Capacity,
                         FixedCost = w.FixedCost,
                         supplyForStore = w.supplyForStore,
@@ -144,7 +144,7 @@ class Program
                     }).ToList(),
                     warehouses: sol.Warehouses.Select(w => new Warehouse
                     {
-                        Id= w.Id,
+                        Id = w.Id,
                         Capacity = w.Capacity,
                         FixedCost = w.FixedCost,
                         supplyForStore = w.supplyForStore,
@@ -210,7 +210,8 @@ class Program
                                 Procapacity: sol.Procapacity
                                 ));
                         }
-                        else if (randomTweek == 1 && i != 0) {
+                        else if (randomTweek == 1 && i != 0)
+                        {
 
                             var ts = TweakStore(new ProSolution(
                                 stores: sol.Stores.Select(s => new Store
@@ -303,7 +304,7 @@ class Program
                         //        ));
                         //}
 
-                        var Rcost = 0.0; 
+                        var Rcost = 0.0;
 
                         if (i == 0 || randomTweek != 1)
                         {
@@ -646,281 +647,115 @@ class Program
     }
 
     public static ProSolution TweakWarehouse(ProSolution sol)
+    {
+        var oldsol = new ProSolution(
+               stores: sol.Stores.Select(s => new Store
+               {
+                   Id = s.Id,
+                   Request = s.Request,
+                   Suppliers = s.Suppliers.ToList(),
+                   IncompatibleStores = s.IncompatibleStores.ToHashSet(),
+                   WarehousesSupply = s.WarehousesSupply.ToList(),
+                   SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
+               }).ToList(),
+               warehouses: sol.Warehouses.Select(w => new Warehouse
+               {
+                   Id = w.Id,
+                   Capacity = w.Capacity,
+                   FixedCost = w.FixedCost,
+                   supplyForStore = w.supplyForStore,
+                   Open = w.Open,
+                   StartCapacity = w.StartCapacity
+               }).ToList(),
+               incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
+               Procapacity: sol.Procapacity
+           );
+
+
+        var openWarehouses = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
+
+
+        Random rnd = new Random();
+        int randomIndex = rnd.Next(openWarehouses.Count);
+        var rndwr = openWarehouses[randomIndex];
+        var oldwr = sol.Warehouses.Where(x => x.Id == rndwr.Id).FirstOrDefault();
+        var stores = sol.Stores.Where(x => x.Suppliers.Any(x => x.Id == oldwr.Id)).ToList();
+        var selectedwr = new Warehouse();
+        var allwrreq = 0;
+
+        foreach (var store in stores)
         {
-            var oldsol = new ProSolution(
-                   stores: sol.Stores.Select(s => new Store
-                   {
-                       Id = s.Id,
-                       Request = s.Request,
-                       Suppliers = s.Suppliers.ToList(),
-                       IncompatibleStores = s.IncompatibleStores.ToHashSet(),
-                       WarehousesSupply = s.WarehousesSupply.ToList(),
-                       SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
-                   }).ToList(),
-                   warehouses: sol.Warehouses.Select(w => new Warehouse
-                   {
-                       Id = w.Id,
-                       Capacity = w.Capacity,
-                       FixedCost = w.FixedCost,
-                       supplyForStore = w.supplyForStore,
-                       Open = w.Open,
-                       StartCapacity = w.StartCapacity
-                   }).ToList(),
-                   incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
-                   Procapacity: sol.Procapacity
-               );
-
-
-            var openWarehouses = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
-
-
-            Random rnd = new Random();
-            int randomIndex = rnd.Next(openWarehouses.Count);
-            var rndwr = openWarehouses[randomIndex];
-            var oldwr = sol.Warehouses.Where(x => x.Id == rndwr.Id).FirstOrDefault();
-            var stores = sol.Stores.Where(x => x.Suppliers.Any(x => x.Id == oldwr.Id)).ToList();
-            var selectedwr = new Warehouse();
-            var allwrreq = 0;
-
-            foreach (var store in stores)
+            var allreq = store.Request;
+            allwrreq = allwrreq + store.Request;
+            if (store.Request <= sol.Procapacity)
             {
-                var allreq = store.Request;
-                allwrreq = allwrreq + store.Request;
-                if (store.Request <= sol.Procapacity)
+
+
+                // order and remove 
+                foreach (var wrt in store.SupplyCosts)
                 {
+                    var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
+                    solwr.supplyForStore = (int)wrt.Value;
+
+                }
+
+                var warehouses = sol.Warehouses
+                    .OrderBy(x => x.supplyForStore).ThenBy(x => x.FixedCost)
+                    .Where(warehouse => !store.Suppliers.Where(x => x.Id == warehouse.Id).Any() && warehouse.Open).ToList();
+
+                //new sup
+
+                store.Suppliers = new List<Warehouse>();
+                store.WarehousesSupply = new List<SupplyReq>();
 
 
-                    // order and remove 
-                    foreach (var wrt in store.SupplyCosts)
+
+                foreach (var wrf in warehouses)
+                {
+                    var wr = sol.Warehouses.Where(x => x == wrf).SingleOrDefault();
+
+                    if (allreq == 0)
+                        break;
+                    var supInThatStore = 0;
+                    if (wr.Capacity != 0 && !sol.IncompatiblePairs.Contains($"{wr.Id},{store.Id}"))
                     {
-                        var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
-                        solwr.supplyForStore = (int)wrt.Value;
-
-                    }
-
-                    var warehouses = sol.Warehouses
-                        .OrderBy(x => x.supplyForStore).ThenBy(x => x.FixedCost)
-                        .Where(warehouse => !store.Suppliers.Where(x => x.Id == warehouse.Id).Any() && warehouse.Open).ToList();
-
-                    //new sup
-
-                    store.Suppliers = new List<Warehouse>();
-                    store.WarehousesSupply = new List<SupplyReq>();
-
-
-
-                    foreach (var wrf in warehouses)
-                    {
-                        var wr = sol.Warehouses.Where(x => x == wrf).SingleOrDefault();
-
-                        if (allreq == 0)
-                            break;
-                        var supInThatStore = 0;
-                        if (wr.Capacity != 0 && !sol.IncompatiblePairs.Contains($"{wr.Id},{store.Id}"))
+                        if (wr.Capacity >= allreq)
                         {
-                            if (wr.Capacity >= allreq)
-                            {
-                                supInThatStore = allreq;
-                            }
-                            else
-                            {
-                                supInThatStore = wr.Capacity;
-                            }
-
-                            allreq = allreq - supInThatStore;
-                            allwrreq = allwrreq - supInThatStore;
-
-                            wr.Capacity = wr.Capacity - supInThatStore;
-
-                            store.Suppliers.Add(wr);
-                            store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = supInThatStore });
-
-                            // Add all incompatible pairs of the current store to the HashSet
-                            foreach (var incompatibleStore in store.IncompatibleStores)
-                            {
-                                sol.IncompatiblePairs.Add($"{wr.Id},{incompatibleStore}");
-                            }
-
+                            supInThatStore = allreq;
+                        }
+                        else
+                        {
+                            supInThatStore = wr.Capacity;
                         }
 
-                    }
+                        allreq = allreq - supInThatStore;
+                        allwrreq = allwrreq - supInThatStore;
 
+                        wr.Capacity = wr.Capacity - supInThatStore;
 
-
-
-
-                }
-
-            }
-
-            if (allwrreq == 0)
-            {
-                ///add again IncompatiblePairs
-                foreach (var s in sol.Stores)
-                {
-                    foreach (var wrs in s.Suppliers)
-                    {
-                        foreach (var incompatibleStore in s.IncompatibleStores)
-                        {
-                            sol.IncompatiblePairs.Add($"{wrs.Id},{incompatibleStore}");
-                        }
-                    }
-                }
-
-                ////Remove this warehouse IncompatiblePairs
-                //foreach (var sinc in sol.IncompatiblePairs)
-                //{
-                //    if (sinc.Contains($"{oldwr.Id}"))
-                //        sol.IncompatiblePairs.Remove(sinc);
-                //}
-
-                oldwr.Open = false;
-
-                var opw = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
-
-                return sol;
-            }
-            else
-            {
-                return oldsol;
-            }
-
-
-
-        }
-
-        static Tuple<ProSolution, Double> TweakStore(ProSolution sol, double cost)
-        {
-
-            var oldsol = new ProSolution(
-                stores: sol.Stores.Select(s => new Store
-                {
-                    Id = s.Id,
-                    Request = s.Request,
-                    Suppliers = s.Suppliers.ToList(),
-                    IncompatibleStores = s.IncompatibleStores.ToHashSet(),
-                    WarehousesSupply = s.WarehousesSupply.ToList(),
-                    SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
-                }).ToList(),
-                warehouses: sol.Warehouses.Select(w => new Warehouse
-                {
-                    Id = w.Id,
-                    Capacity = w.Capacity,
-                    FixedCost = w.FixedCost,
-                    supplyForStore = w.supplyForStore,
-                    Open = w.Open,
-                    StartCapacity = w.StartCapacity
-                }).ToList(),
-                incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
-                Procapacity: sol.Procapacity
-            );
-
-
-            Random rnd = new Random();
-            int randomIndex = rnd.Next(sol.Stores.Count);
-            var store = sol.Stores[randomIndex];
-
-            var ncost = cost;
-
-            // return cap 
-            foreach (var w in store.Suppliers)
-            {
-                var supplyreq = store.WarehousesSupply.Where(x => x.warehouse.Id == w.Id).FirstOrDefault().supplyreq;
-                var wr = sol.Warehouses.Where(x => x.Id == w.Id).SingleOrDefault();
-                wr.Capacity = wr.Capacity + supplyreq;
-
-                ncost = ncost - store.SupplyCosts[w.Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == w.Id).SingleOrDefault().supplyreq;
-
-            if (wr.Capacity == wr.StartCapacity)
-                {
-                    wr.Open = false;
-                    ncost = ncost - sol.Warehouses.Where(x => x.Id == w.Id).SingleOrDefault().FixedCost;
-                }
-
-            }
-
-
-        var storeinc = new HashSet<string>();
-
-            //Leave just this stores IncompatiblePairs
-            foreach (var sinc in sol.IncompatiblePairs)
-            {
-                if (sinc.Contains($"{store.Id}"))
-                    storeinc.Add(sinc);
-            }
-
-            sol.IncompatiblePairs = new HashSet<string>();
-
-
-
-
-            //Order
-            foreach (var wrt in store.SupplyCosts)
-            {
-                var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
-                solwr.supplyForStore = (int)wrt.Value;
-
-            }
-
-            //Order and remove warehouses that already supply store
-            var warehouses = sol.Warehouses
-            .OrderBy(x => x.supplyForStore)
-            .Where(warehouse => !store.Suppliers.Where(x => x.Id == warehouse.Id).Any() && warehouse.Open).ToList();
-
-
-            var req = (int)store.Request;
-
-
-            store.Suppliers = new List<Warehouse>();
-            store.WarehousesSupply = new List<SupplyReq>();
-
-
-
-            var requestList = new List<int>();
-            var firstRequest = (int)store.Request; //rnd.Next((int)store.Request - 1);
-            var secondRequest = (int)store.Request - firstRequest;
-
-
-
-            sol.CountReq = (int)store.Request;
-
-            requestList.Add(firstRequest);
-            //requestList.Add(secondRequest);
-
-            foreach (var request in requestList)
-            {
-
-                foreach (var wr in warehouses)
-                {
-                    // Check if the warehouse-store pair is incompatible
-                    if (storeinc.Contains($"{wr.Id},{store.Id}"))
-                    {
-                        continue;
-                    }
-
-                    if (wr.Capacity >= request)
-                    {
-                        wr.Capacity -= request;
-                        store.Supply = store.SupplyCosts[wr.Id];
                         store.Suppliers.Add(wr);
-                        store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = request });
-                        
+                        store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = supInThatStore });
 
-                        sol.CountReq = sol.CountReq - request;
-                        req = req - request;
                         // Add all incompatible pairs of the current store to the HashSet
                         foreach (var incompatibleStore in store.IncompatibleStores)
                         {
                             sol.IncompatiblePairs.Add($"{wr.Id},{incompatibleStore}");
                         }
 
-                        warehouses.Remove( wr );
-
-                        break;
                     }
+
                 }
+
+
+
+
+
             }
 
+        }
+
+        if (allwrreq == 0)
+        {
             ///add again IncompatiblePairs
             foreach (var s in sol.Stores)
             {
@@ -933,388 +768,402 @@ class Program
                 }
             }
 
-            if (req != 0)
-            {
-                return Tuple.Create(oldsol, cost);
+            ////Remove this warehouse IncompatiblePairs
+            //foreach (var sinc in sol.IncompatiblePairs)
+            //{
+            //    if (sinc.Contains($"{oldwr.Id}"))
+            //        sol.IncompatiblePairs.Remove(sinc);
+            //}
 
-            }
-            else
-            {
+            oldwr.Open = false;
 
-                for (int i = 0; i < store.Suppliers.Count; i++)
-                {
-                    // Add the supply cost for the store
-                    ncost += store.SupplyCosts[store.Suppliers[i].Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == store.Suppliers[i].Id).SingleOrDefault().supplyreq;
-                }
+            var opw = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
 
-            return Tuple.Create(sol, ncost);
-            }
-
-
+            return sol;
+        }
+        else
+        {
+            return oldsol;
         }
 
 
 
+    }
 
-        static ProSolution Perturb(ProSolution sol)
+    static Tuple<ProSolution, Double> TweakStore(ProSolution sol, double cost)
+    {
+
+        var oldsol = new ProSolution(
+            stores: sol.Stores.Select(s => new Store
+            {
+                Id = s.Id,
+                Request = s.Request,
+                Suppliers = s.Suppliers.ToList(),
+                IncompatibleStores = s.IncompatibleStores.ToHashSet(),
+                WarehousesSupply = s.WarehousesSupply.ToList(),
+                SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
+            }).ToList(),
+            warehouses: sol.Warehouses.Select(w => new Warehouse
+            {
+                Id = w.Id,
+                Capacity = w.Capacity,
+                FixedCost = w.FixedCost,
+                supplyForStore = w.supplyForStore,
+                Open = w.Open,
+                StartCapacity = w.StartCapacity
+            }).ToList(),
+            incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
+            Procapacity: sol.Procapacity
+        );
+
+
+        Random rnd = new Random();
+        int randomIndex = rnd.Next(sol.Stores.Count);
+        var store = sol.Stores[randomIndex];
+
+        var ncost = cost;
+
+        // return cap 
+        foreach (var w in store.Suppliers)
+        {
+            var supplyreq = store.WarehousesSupply.Where(x => x.warehouse.Id == w.Id).FirstOrDefault().supplyreq;
+            var wr = sol.Warehouses.Where(x => x.Id == w.Id).SingleOrDefault();
+            wr.Capacity = wr.Capacity + supplyreq;
+
+            ncost = ncost - store.SupplyCosts[w.Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == w.Id).SingleOrDefault().supplyreq;
+
+            if (wr.Capacity == wr.StartCapacity)
+            {
+                wr.Open = false;
+                ncost = ncost - sol.Warehouses.Where(x => x.Id == w.Id).SingleOrDefault().FixedCost;
+            }
+
+        }
+
+
+        var storeinc = new HashSet<string>();
+
+        //Leave just this stores IncompatiblePairs
+        foreach (var sinc in sol.IncompatiblePairs)
+        {
+            if (sinc.Contains($"{store.Id}"))
+                storeinc.Add(sinc);
+        }
+
+        sol.IncompatiblePairs = new HashSet<string>();
+
+
+
+
+        //Order
+        foreach (var wrt in store.SupplyCosts)
+        {
+            var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
+            solwr.supplyForStore = (int)wrt.Value;
+
+        }
+
+        //Order and remove warehouses that already supply store
+        var warehouses = sol.Warehouses
+        .OrderBy(x => x.supplyForStore)
+        .Where(warehouse => !store.Suppliers.Where(x => x.Id == warehouse.Id).Any() && warehouse.Open).ToList();
+
+
+        var req = (int)store.Request;
+
+
+        store.Suppliers = new List<Warehouse>();
+        store.WarehousesSupply = new List<SupplyReq>();
+
+
+
+        var requestList = new List<int>();
+        var firstRequest = (int)store.Request; //rnd.Next((int)store.Request - 1);
+        var secondRequest = (int)store.Request - firstRequest;
+
+
+
+        sol.CountReq = (int)store.Request;
+
+        requestList.Add(firstRequest);
+        //requestList.Add(secondRequest);
+
+        foreach (var request in requestList)
         {
 
-            Random rnd = new Random();
-            int randomIndex = rnd.Next(sol.Warehouses.Count);
-            var wr = sol.Warehouses[randomIndex];
-            var stores = sol.Stores.Where(x => x.Suppliers[0] == wr).ToList();
-            var selectedwr = new Warehouse();
-
-            sol.Warehouses = sol.Warehouses.OrderBy(x => x.FixedCost).ThenBy(x => x.Capacity).ToList();
-
-            var found = false;
-
-            foreach(var nwr in sol.Warehouses)
+            foreach (var wr in warehouses)
             {
-                if (nwr.Capacity >= wr.Capacity && nwr != wr && !nwr.Open)
+                // Check if the warehouse-store pair is incompatible
+                if (storeinc.Contains($"{wr.Id},{store.Id}"))
                 {
-                    selectedwr = nwr;
-                    found = true;
                     continue;
-                        }
-            }
-            if (found)
-            {
-
-
-                foreach (var store in stores)
-                {
-                    store.Suppliers = new List<Warehouse>();
-                    store.WarehousesSupply = new List<SupplyReq>();
-                    store.Suppliers.Add(selectedwr);
-                    selectedwr.Capacity = selectedwr.Capacity - store.Request;
-
-                    store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
-
-                    wr.Capacity = wr.StartCapacity;
-                    wr.Open = false;
-
-                }
-            }
-
-
-
-
-
-            return sol;
-        }
-
-        static ProSolution PerturbWarehouse(ProSolution sol)
-        {
-
-            Random rnd = new Random();
-            int randomIndex = rnd.Next(sol.Warehouses.Count);
-            //var wr = sol.Warehouses[randomIndex];
-            //var stores = sol.Stores.Where(x => x.Suppliers[0] == wr).ToList();
-            //var selectedwr = new Warehouse();
-
-            var openWarehouses = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
-
-            var closedWarehouses = sol.Warehouses.Where(x => !x.Open).OrderBy(x => x.FixedCost).ThenByDescending(x => x.StartCapacity).ToList();
-
-            var found = false;
-
-            foreach (var oldw in openWarehouses)
-            {
-                foreach(var clwr in closedWarehouses)
-                {
-                    if(clwr.StartCapacity >= oldw.StartCapacity - oldw.Capacity)
-                    {
-                        var stores = sol.Stores.Where(x => x.Suppliers.Any(x => x.Id == oldw.Id)).ToList();
-                        var selectedwr = sol.Warehouses.Where(x => x.Id == clwr.Id).FirstOrDefault();
-
-                        var oldwr = sol.Warehouses.Where(x => x.Id == oldw.Id).FirstOrDefault();
-                        foreach (var store in stores)
-                        {
-
-
-                            store.Suppliers = new List<Warehouse>();
-                            store.WarehousesSupply = new List<SupplyReq>();
-                            store.Suppliers.Add(clwr);
-                            selectedwr.Capacity = selectedwr.Capacity - store.Request;
-
-                            store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
-
-                            oldwr.Capacity = oldwr.StartCapacity;
-                            oldwr.Open = false;
-
-                        }
-                        found = true;
-                        break;
-                    }
-                }
-                if (found)
-                    break;
-            }
-
-
-
-
-            //foreach (var nwr in sol.Warehouses)
-            //{
-            //    if (nwr.Capacity >= wr.Capacity && nwr != wr && !nwr.Open)
-            //    {
-            //        selectedwr = nwr;
-            //        found = true;
-            //        continue;
-            //    }
-            //}
-            //if (found)
-            //{
-
-
-            //    foreach (var store in stores)
-            //    {
-            //        store.Suppliers = new List<Warehouse>();
-            //        store.WarehousesSupply = new List<SupplyReq>();
-            //        store.Suppliers.Add(selectedwr);
-            //        selectedwr.Capacity = selectedwr.Capacity - store.Request;
-
-            //        store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
-
-            //        wr.Capacity = wr.StartCapacity;
-            //        wr.Open = false;
-
-            //    }
-            //}
-
-
-
-
-
-            return sol;
-        }
-
-        static ProSolution Perturb(ProSolution sol)
-        {
-            var preW = new Dictionary<int, Warehouse>();
-
-            Random rnd = new Random();
-
-            // Calculate the number of stores that represent 5% of the total
-            int numStoresToSelect = (int)Math.Ceiling(sol.Stores.Count * 0.30);
-
-            // Create a list to store the randomly selected stores
-            var selectedStores = new List<Store>();
-
-            // Randomly select 5% of stores
-            while (selectedStores.Count < numStoresToSelect)
-            {
-                int randomIndex = rnd.Next(sol.Stores.Count);
-                var store = sol.Stores[randomIndex];
-                if (!selectedStores.Contains(store))
-                {
-                    selectedStores.Add(store);
-                }
-            }
-
-            // Process the randomly selected stores
-            foreach (var store in selectedStores)
-            {
-                var wr = sol.Warehouses.Where(x => x == store.Suppliers[0]).SingleOrDefault();
-                wr.Capacity = wr.Capacity + store.Request;
-                preW.Add(store.Id, wr);
-
-
-
-
-
-                foreach (var warehouse in store.Suppliers)
-                {
-                    foreach (var incompatibleStore in store.IncompatibleStores)
-                    {
-                        var remove = true;
-                        var incompatibleStoreobj = sol.Stores.Where(x => x.Id == incompatibleStore).SingleOrDefault();
-
-                        foreach (var sr in incompatibleStoreobj.IncompatibleStores)
-                        {
-
-                            if (store.Id == sr)
-                                continue;
-
-                            var wrs = sol.Stores.Where(s => s.Id == sr).FirstOrDefault().Suppliers;
-
-                            foreach (var s in wrs)
-                            {
-                                if (warehouse == s)
-                                    remove = false;
-                            }
-
-                        }
-
-
-
-                        if (remove)
-                            sol.IncompatiblePairs.Remove($"{warehouse.Id},{incompatibleStore}");
-                    }
-                    //warehouse.Capacity = warehouse.Capacity + (int)store.Request;//store.WarehousesSupply.Where(x => x.warehouse.Id == warehouse.Id).SingleOrDefault().supplyreq;
                 }
 
-
-
-                store.Suppliers = new List<Warehouse>();
-                store.WarehousesSupply = new List<SupplyReq>();
-
-
-            }
-
-            foreach (var store in selectedStores)
-            {
-                var req = (int)store.Request;
-                var requestList = new List<int>();
-                var firstRequest = (int)store.Request; //rnd.Next((int)store.Request - 1);
-                var secondRequest = (int)store.Request - firstRequest;
-                var wr = preW[store.Id];
-
-                foreach (var wrt in store.SupplyCosts)
+                if (wr.Capacity >= request)
                 {
-                    var solwr = sol.Warehouses.Where(x => x.Id == wrt.Key).SingleOrDefault();
-                    solwr.supplyForStore = (int)wrt.Value;
-
-                }
-
-                sol.Warehouses = sol.Warehouses.OrderBy(x => x.supplyForStore).ToList();
-
-
-                sol.CountReq = (int)store.Request;
-
-                requestList.Add(firstRequest);
-                //requestList.Add(secondRequest);
-
-                foreach (var request in requestList)
-                {
-
-                    foreach (var warehouse in sol.Warehouses)
-                    {
-                        // Check if the warehouse-store pair is incompatible
-                        if (sol.IncompatiblePairs.Contains($"{warehouse.Id},{store.Id}") || wr == warehouse)
-                        {
-                            continue;
-                        }
-
-                        if (warehouse.Capacity >= request)
-                        {
-                            warehouse.Capacity -= request;
-                            store.Supply = store.SupplyCosts[warehouse.Id];
-                            store.Suppliers.Add(warehouse);
-                            store.WarehousesSupply.Add(new SupplyReq { warehouse = warehouse, supplyreq = request });
-
-
-                            sol.CountReq = sol.CountReq - request;
-                            req = req - request;
-                            // Add all incompatible pairs of the current store to the HashSet
-                            foreach (var incompatibleStore in store.IncompatibleStores)
-                            {
-                                sol.IncompatiblePairs.Add($"{warehouse.Id},{incompatibleStore}");
-                            }
-
-                            break;
-                        }
-                    }
-                }
-
-                if (req != 0)
-                {
-                    wr.Capacity -= req;
+                    wr.Capacity -= request;
+                    store.Supply = store.SupplyCosts[wr.Id];
                     store.Suppliers.Add(wr);
-                    store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = req });
+                    store.WarehousesSupply.Add(new SupplyReq { warehouse = wr, supplyreq = request });
 
+
+                    sol.CountReq = sol.CountReq - request;
+                    req = req - request;
+                    // Add all incompatible pairs of the current store to the HashSet
                     foreach (var incompatibleStore in store.IncompatibleStores)
                     {
                         sol.IncompatiblePairs.Add($"{wr.Id},{incompatibleStore}");
                     }
 
-                }
-                else
-                {
-                   // wr.Capacity += req;
-                }
+                    warehouses.Remove(wr);
 
-
+                    break;
+                }
             }
-
-
-
-
-            return new ProSolution(stores: sol.Stores, warehouses: sol.Warehouses, incompatiblePairs: sol.IncompatiblePairs);
         }
 
-        static ProSolution intialSol(ProSolution sol)
+        ///add again IncompatiblePairs
+        foreach (var s in sol.Stores)
         {
-            // Create a HashSet to store incompatible pairs
-            var incompatiblePairs = new HashSet<string>();
-
-            // Assign goods to stores
-            foreach (var store in sol.Stores)
+            foreach (var wrs in s.Suppliers)
             {
-
-                foreach (var wr in store.SupplyCosts)
+                foreach (var incompatibleStore in s.IncompatibleStores)
                 {
-                    var solwr = sol.Warehouses.Where(x => x.Id == wr.Key).SingleOrDefault();
-                    solwr.supplyForStore = (int)wr.Value;
-
-                }
-
-                sol.Warehouses = sol.Warehouses.OrderBy(x => x.supplyForStore).ToList();
-
-                foreach (var warehouse in sol.Warehouses)
-                {
-                    // Check if the warehouse-store pair is incompatible
-                    if (incompatiblePairs.Contains($"{warehouse.Id},{store.Id}"))
-                    {
-                        continue;
-                    }
-
-                    if (warehouse.Capacity >= store.Request)
-                    {
-                        warehouse.Open = true;
-                        sol.Procapacity = sol.Procapacity - store.Request;
-                        warehouse.Capacity -= store.Request;
-                        store.Supply = store.SupplyCosts[warehouse.Id];
-                        store.Suppliers.Add(warehouse);
-                        store.WarehousesSupply.Add(new SupplyReq { warehouse = warehouse, supplyreq = store.Request });
-                        // Add all incompatible pairs of the current store to the HashSet
-                        foreach (var incompatibleStore in store.IncompatibleStores)
-                        {
-                            incompatiblePairs.Add($"{warehouse.Id},{incompatibleStore}");
-                        }
-
-                        break;
-                    }
+                    sol.IncompatiblePairs.Add($"{wrs.Id},{incompatibleStore}");
                 }
             }
-
-            sol.IncompatiblePairs = incompatiblePairs;
-
-            return sol;
         }
 
-        static double EvaluateSolution(List<Store> stores, List<Warehouse> warehouses)
+        if (req != 0)
         {
-            double totalCost = 0;
-            var warehousesAdded = new HashSet<int>();
+            return Tuple.Create(oldsol, cost);
+
+        }
+        else
+        {
+
+            for (int i = 0; i < store.Suppliers.Count; i++)
+            {
+                // Add the supply cost for the store
+                ncost += store.SupplyCosts[store.Suppliers[i].Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == store.Suppliers[i].Id).SingleOrDefault().supplyreq;
+            }
+
+            return Tuple.Create(sol, ncost);
+        }
+
+
+    }
+
+
+
+
+    static ProSolution Perturb(ProSolution sol)
+    {
+
+        Random rnd = new Random();
+        int randomIndex = rnd.Next(sol.Warehouses.Count);
+        var wr = sol.Warehouses[randomIndex];
+        var stores = sol.Stores.Where(x => x.Suppliers[0] == wr).ToList();
+        var selectedwr = new Warehouse();
+
+        sol.Warehouses = sol.Warehouses.OrderBy(x => x.FixedCost).ThenBy(x => x.Capacity).ToList();
+
+        var found = false;
+
+        foreach (var nwr in sol.Warehouses)
+        {
+            if (nwr.Capacity >= wr.Capacity && nwr != wr && !nwr.Open)
+            {
+                selectedwr = nwr;
+                found = true;
+                continue;
+            }
+        }
+        if (found)
+        {
+
+
             foreach (var store in stores)
             {
-                for (int i = 0; i < store.Suppliers.Count; i++)
+                store.Suppliers = new List<Warehouse>();
+                store.WarehousesSupply = new List<SupplyReq>();
+                store.Suppliers.Add(selectedwr);
+                selectedwr.Capacity = selectedwr.Capacity - store.Request;
+
+                store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
+
+                wr.Capacity = wr.StartCapacity;
+                wr.Open = false;
+
+            }
+        }
+
+
+
+
+
+        return sol;
+    }
+
+    static ProSolution PerturbWarehouse(ProSolution sol)
+    {
+
+        Random rnd = new Random();
+        int randomIndex = rnd.Next(sol.Warehouses.Count);
+        //var wr = sol.Warehouses[randomIndex];
+        //var stores = sol.Stores.Where(x => x.Suppliers[0] == wr).ToList();
+        //var selectedwr = new Warehouse();
+
+        var openWarehouses = sol.Warehouses.Where(x => x.Open).OrderByDescending(x => x.FixedCost).ThenBy(x => x.StartCapacity).ToList();
+
+        var closedWarehouses = sol.Warehouses.Where(x => !x.Open).OrderBy(x => x.FixedCost).ThenByDescending(x => x.StartCapacity).ToList();
+
+        var found = false;
+
+        foreach (var oldw in openWarehouses)
+        {
+            foreach (var clwr in closedWarehouses)
+            {
+                if (clwr.StartCapacity >= oldw.StartCapacity - oldw.Capacity)
                 {
-                    if (!warehousesAdded.Contains(store.Suppliers[i].Id))
-                        // Add the fixed cost of the warehouse supplying the store
-                        totalCost += warehouses.Where(x => x.Id == store.Suppliers[i].Id).SingleOrDefault().FixedCost;
+                    var stores = sol.Stores.Where(x => x.Suppliers.Any(x => x.Id == oldw.Id)).ToList();
+                    var selectedwr = sol.Warehouses.Where(x => x.Id == clwr.Id).FirstOrDefault();
 
-                    warehousesAdded.Add(store.Suppliers[i].Id);
-                    // Add the supply cost for the store
-                    totalCost += store.SupplyCosts[store.Suppliers[i].Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == store.Suppliers[i].Id).SingleOrDefault().supplyreq;
+                    var oldwr = sol.Warehouses.Where(x => x.Id == oldw.Id).FirstOrDefault();
+                    foreach (var store in stores)
+                    {
+
+
+                        store.Suppliers = new List<Warehouse>();
+                        store.WarehousesSupply = new List<SupplyReq>();
+                        store.Suppliers.Add(clwr);
+                        selectedwr.Capacity = selectedwr.Capacity - store.Request;
+
+                        store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
+
+                        oldwr.Capacity = oldwr.StartCapacity;
+                        oldwr.Open = false;
+
+                    }
+                    found = true;
+                    break;
                 }
+            }
+            if (found)
+                break;
+        }
 
 
+
+
+        //foreach (var nwr in sol.Warehouses)
+        //{
+        //    if (nwr.Capacity >= wr.Capacity && nwr != wr && !nwr.Open)
+        //    {
+        //        selectedwr = nwr;
+        //        found = true;
+        //        continue;
+        //    }
+        //}
+        //if (found)
+        //{
+
+
+        //    foreach (var store in stores)
+        //    {
+        //        store.Suppliers = new List<Warehouse>();
+        //        store.WarehousesSupply = new List<SupplyReq>();
+        //        store.Suppliers.Add(selectedwr);
+        //        selectedwr.Capacity = selectedwr.Capacity - store.Request;
+
+        //        store.WarehousesSupply.Add(new SupplyReq { warehouse = selectedwr, supplyreq = store.Request });
+
+        //        wr.Capacity = wr.StartCapacity;
+        //        wr.Open = false;
+
+        //    }
+        //}
+
+
+
+
+
+        return sol;
+    }
+
+
+
+    static ProSolution intialSol(ProSolution sol)
+    {
+        // Create a HashSet to store incompatible pairs
+        var incompatiblePairs = new HashSet<string>();
+
+        // Assign goods to stores
+        foreach (var store in sol.Stores)
+        {
+
+            foreach (var wr in store.SupplyCosts)
+            {
+                var solwr = sol.Warehouses.Where(x => x.Id == wr.Key).SingleOrDefault();
+                solwr.supplyForStore = (int)wr.Value;
 
             }
 
-            return totalCost;
+            sol.Warehouses = sol.Warehouses.OrderBy(x => x.supplyForStore).ToList();
+
+            foreach (var warehouse in sol.Warehouses)
+            {
+                // Check if the warehouse-store pair is incompatible
+                if (incompatiblePairs.Contains($"{warehouse.Id},{store.Id}"))
+                {
+                    continue;
+                }
+
+                if (warehouse.Capacity >= store.Request)
+                {
+                    warehouse.Open = true;
+                    sol.Procapacity = sol.Procapacity - store.Request;
+                    warehouse.Capacity -= store.Request;
+                    store.Supply = store.SupplyCosts[warehouse.Id];
+                    store.Suppliers.Add(warehouse);
+                    store.WarehousesSupply.Add(new SupplyReq { warehouse = warehouse, supplyreq = store.Request });
+                    // Add all incompatible pairs of the current store to the HashSet
+                    foreach (var incompatibleStore in store.IncompatibleStores)
+                    {
+                        incompatiblePairs.Add($"{warehouse.Id},{incompatibleStore}");
+                    }
+
+                    break;
+                }
+            }
         }
+
+        sol.IncompatiblePairs = incompatiblePairs;
+
+        return sol;
+    }
+
+    static double EvaluateSolution(List<Store> stores, List<Warehouse> warehouses)
+    {
+        double totalCost = 0;
+        var warehousesAdded = new HashSet<int>();
+        foreach (var store in stores)
+        {
+            for (int i = 0; i < store.Suppliers.Count; i++)
+            {
+                if (!warehousesAdded.Contains(store.Suppliers[i].Id))
+                    // Add the fixed cost of the warehouse supplying the store
+                    totalCost += warehouses.Where(x => x.Id == store.Suppliers[i].Id).SingleOrDefault().FixedCost;
+
+                warehousesAdded.Add(store.Suppliers[i].Id);
+                // Add the supply cost for the store
+                totalCost += store.SupplyCosts[store.Suppliers[i].Id] * store.WarehousesSupply.Where(x => x.warehouse.Id == store.Suppliers[i].Id).SingleOrDefault().supplyreq;
+            }
+
+
+
+        }
+
+        return totalCost;
+    }
 }
