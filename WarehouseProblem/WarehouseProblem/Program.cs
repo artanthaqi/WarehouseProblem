@@ -210,35 +210,35 @@ class Program
                                 Procapacity: sol.Procapacity
                                 ));
                         }
-                        else if (randomTweek == 1 && i != 0)
-                        {
+                        //else if (randomTweek == 1 && i != 0)
+                        //{
 
-                            var ts = TweakStore(new ProSolution(
-                                stores: sol.Stores.Select(s => new Store
-                                {
-                                    Id = s.Id,
-                                    Request = s.Request,
-                                    Suppliers = s.Suppliers.ToList(),
-                                    IncompatibleStores = s.IncompatibleStores.ToHashSet(),
-                                    WarehousesSupply = s.WarehousesSupply.ToList(),
-                                    SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
-                                }).ToList(),
-                                warehouses: sol.Warehouses.Select(w => new Warehouse
-                                {
-                                    Id = w.Id,
-                                    Capacity = w.Capacity,
-                                    FixedCost = w.FixedCost,
-                                    supplyForStore = w.supplyForStore,
-                                    Open = w.Open,
-                                    StartCapacity = w.StartCapacity
-                                }).ToList(),
-                                incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
-                                Procapacity: sol.Procapacity
-                                ), tweekedcost);
+                        //    var ts = TweakStore(new ProSolution(
+                        //        stores: sol.Stores.Select(s => new Store
+                        //        {
+                        //            Id = s.Id,
+                        //            Request = s.Request,
+                        //            Suppliers = s.Suppliers.ToList(),
+                        //            IncompatibleStores = s.IncompatibleStores.ToHashSet(),
+                        //            WarehousesSupply = s.WarehousesSupply.ToList(),
+                        //            SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
+                        //        }).ToList(),
+                        //        warehouses: sol.Warehouses.Select(w => new Warehouse
+                        //        {
+                        //            Id = w.Id,
+                        //            Capacity = w.Capacity,
+                        //            FixedCost = w.FixedCost,
+                        //            supplyForStore = w.supplyForStore,
+                        //            Open = w.Open,
+                        //            StartCapacity = w.StartCapacity
+                        //        }).ToList(),
+                        //        incompatiblePairs: sol.IncompatiblePairs.ToHashSet(),
+                        //        Procapacity: sol.Procapacity
+                        //        ), tweekedcost);
 
-                            R = ts.Item1;
-                            tweekedcost = ts.Item2;
-                        }
+                        //    R = ts.Item1;
+                        //    tweekedcost = ts.Item2;
+                        //}
                         else
                         {
                             R = Tweak(new ProSolution(
@@ -395,20 +395,20 @@ class Program
                         );
                     }
 
-                    sol = Perturb(new ProSolution(
-                            stores: homeBase.Stores.Select(s => new Store
-                            {
-                                Id = s.Id,
-                                Request = s.Request,
-                                Suppliers = s.Suppliers.ToList(),
-                                IncompatibleStores = s.IncompatibleStores.ToHashSet(),
-                                WarehousesSupply = s.WarehousesSupply.ToList(),
-                                SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
-                            }).ToList(),
-                            warehouses: homeBase.Warehouses.ToList(),
-                            incompatiblePairs: homeBase.IncompatiblePairs.ToHashSet(),
-                            Procapacity: homeBase.Procapacity
-                        ));
+                    //sol = Perturb(new ProSolution(
+                    //        stores: homeBase.Stores.Select(s => new Store
+                    //        {
+                    //            Id = s.Id,
+                    //            Request = s.Request,
+                    //            Suppliers = s.Suppliers.ToList(),
+                    //            IncompatibleStores = s.IncompatibleStores.ToHashSet(),
+                    //            WarehousesSupply = s.WarehousesSupply.ToList(),
+                    //            SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
+                    //        }).ToList(),
+                    //        warehouses: homeBase.Warehouses.ToList(),
+                    //        incompatiblePairs: homeBase.IncompatiblePairs.ToHashSet(),
+                    //        Procapacity: homeBase.Procapacity
+                    //    ));
                     per = true;
 
                     var solPerCost = EvaluateSolution(sol.Stores, sol.Warehouses);
@@ -417,41 +417,41 @@ class Program
 
 
 
-                //for(var i =0; i< best.Warehouses.Count*500; i++)
-                //{
+                for (var i = 0; i < best.Warehouses.Count ; i++)
+                {
 
-                //    var T = TweakWarehouse(new ProSolution(
-                //                stores: best.Stores.Select(s => new Store
-                //                {
-                //                    Id = s.Id,
-                //                    Request = s.Request,
-                //                    Suppliers = s.Suppliers.ToList(),
-                //                    IncompatibleStores = s.IncompatibleStores.ToHashSet(),
-                //                    WarehousesSupply = s.WarehousesSupply.ToList(),
-                //                    SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
-                //                }).ToList(),
-                //                warehouses: best.Warehouses.Select(w => new Warehouse
-                //                {
-                //                    Id = w.Id,
-                //                    Capacity = w.Capacity,
-                //                    FixedCost = w.FixedCost,
-                //                    supplyForStore = w.supplyForStore,
-                //                    Open = w.Open,
-                //                    StartCapacity = w.StartCapacity
-                //                }).ToList(),
-                //                incompatiblePairs: best.IncompatiblePairs.ToHashSet(),
-                //                Procapacity: best.Procapacity
-                //                ));
+                    var T = TweakWarehouse(new ProSolution(
+                                stores: best.Stores.Select(s => new Store
+                                {
+                                    Id = s.Id,
+                                    Request = s.Request,
+                                    Suppliers = s.Suppliers.ToList(),
+                                    IncompatibleStores = s.IncompatibleStores.ToHashSet(),
+                                    WarehousesSupply = s.WarehousesSupply.ToList(),
+                                    SupplyCosts = new Dictionary<int, double>(s.SupplyCosts)
+                                }).ToList(),
+                                warehouses: best.Warehouses.Select(w => new Warehouse
+                                {
+                                    Id = w.Id,
+                                    Capacity = w.Capacity,
+                                    FixedCost = w.FixedCost,
+                                    supplyForStore = w.supplyForStore,
+                                    Open = w.Open,
+                                    StartCapacity = w.StartCapacity
+                                }).ToList(),
+                                incompatiblePairs: best.IncompatiblePairs.ToHashSet(),
+                                Procapacity: best.Procapacity
+                                ));
 
-                //    var Tcost = EvaluateSolution(T.Stores, T.Warehouses);
+                    var Tcost = EvaluateSolution(T.Stores, T.Warehouses);
 
-                //    if (Tcost < bestCost)
-                //    {
-                //        best = T;
-                //        bestCost = Tcost;
-                //    }
+                    if (Tcost < bestCost)
+                    {
+                        best = T;
+                        bestCost = Tcost;
+                    }
 
-                //}
+                }
 
 
 
