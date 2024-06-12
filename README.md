@@ -37,7 +37,7 @@ The code is divided into several methods, each performing a specific task in the
 
 ## Results
 
-The results of the algorithm execution are presented in tables. The tables include the details of the best solution found and its total cost. The results are also saved to a text file in the "Solutions" folder.
+You can find the solutions for 5 runs for each instance in the "Results" folder. Additionally, the scores for each run and the best run are summarized in the Excel file named "Results.xlsx".
 
 ## Usage
 
