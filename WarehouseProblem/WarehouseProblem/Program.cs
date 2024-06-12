@@ -417,7 +417,7 @@ class Program
 
 
 
-                for (var i = 0; i < best.Warehouses.Count ; i++)
+                for (var i = 0; i < best.Warehouses.Count/10; i++)
                 {
 
                     var T = TweakWarehouse(new ProSolution(
